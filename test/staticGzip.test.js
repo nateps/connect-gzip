@@ -70,7 +70,8 @@ module.exports = {
       }
     );
   },
-  'test compressable index.html': function() {
+  'test compressable index.html': function(beforeExit) {
+    var n = 0;
     connect.createServer(
       gzip.staticGzip(fixturesPath, { extensions: ['.html'] })
     ).listen(9898, function() {
@@ -82,8 +83,12 @@ module.exports = {
       http.get(options, function(res) {
         gunzip(res, function(err, body) {
           body.should.equal('<p>Wahoo!</p>');
+          n++;
         });
       });
+    });
+    beforeExit(function() {
+      n.should.equal(1);
     });
   }
 }
