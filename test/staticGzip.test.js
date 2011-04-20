@@ -1,86 +1,77 @@
-
-/**
- * Module dependencies.
- */
-
-var connect = require('connect'),
+var assert = require('assert'),
+    should = require('should'),
+    fs = require('fs'),
+    path = require('path'),
+    connect = require('connect'),
     gzip = require('../index'),
-    helpers = require('./helpers'),
-    assert = require('assert'),
-    http = require('http'),
-    fs = require('fs');
-
-/**
- * Path to ./test/fixtures/
- */
-
-var fixturesPath = __dirname + '/fixtures';
+    
+    fixturesPath = __dirname + '/fixtures',
+    
+    gzipCss = connect.createServer(
+      gzip.staticGzip(fixturesPath, { extensions: ['.css'] })
+    ),
+    gzipHtml = connect.createServer(
+      gzip.staticGzip(fixturesPath, { extensions: ['.html'] })
+    );
 
 module.exports = {
-    'test does not Accept gzip': function(){
-        var server = helpers.run(
-            gzip.staticGzip({ root: fixturesPath, compress: ['text/css'] }),
-            connect.static(fixturesPath)
-        );
-        var req = server.request('GET', '/style.css');
-        req.buffer = true;
-        req.on('response', function(res){
-            res.on('end', function(){
-                assert.notEqual('gzip', res.headers['content-encoding']);
-            });
-        });
-        req.end();
-    },
-    
-    'test non-compressable': function(){
-        var server = helpers.run(
-            gzip.staticGzip({ root: fixturesPath, compress: ['text/html'] }),
-            connect.static(fixturesPath)
-        );
-        var req = server.request('GET', '/style.css', { Accept: 'gzip' });
-        req.buffer = true;
-        req.on('response', function(res){
-            res.on('end', function(){
-                assert.notEqual('gzip', res.headers['content-encoding']);
-            });
-        });
-        req.end();
-    },
-    
-    'test compressable': function(){
-        var server = helpers.run(
-            gzip.staticGzip({ root: fixturesPath, compress: ['text/css', 'text/html'] }),
-            connect.static(fixturesPath)
-        );
-
-        try {
-            var stat = fs.statSync(fixturesPath + '/style.css'),
-                path = fixturesPath + '/style.css.' + Number(stat.mtime) + '.gz';
-            fs.unlinkSync(path);
-        } catch (err) {
-            // Ignore
-        }
-        
-        server.pending = 2;
-        // Pre-compression
-        var req = server.request('GET', '/style.css', { 'Accept-Encoding': 'gzip' });
-        req.buffer = true;
-        req.on('response', function(res){
-            res.on('end', function(){
-                assert.notEqual('gzip', res.headers['content-encoding'], 'Content-Encoding: gzip when not gzipped');
-
-                // Post-compression
-                var req = server.request('GET', '/style.css', { 'Accept-Encoding': 'gzip' });
-                req.buffer = true;
-                req.on('response', function(res){
-                    res.on('end', function(){
-                        assert.equal('text/css', res.headers['content-type']);
-                        assert.equal('gzip', res.headers['content-encoding'], 'missing Content-Encoding: gzip when gzipped');
-                    });
-                });
-                req.end();
-            });
-        });
-        req.end();
-    }
+  'test no Accept-Encoding': function() {
+    assert.response(gzipCss,
+      { url: '/style.css' },
+      function(res) {
+        res.statusCode.should.equal(200);
+        res.body.should.equal('body { font-size: 12px; color: red; }');
+        res.headers['content-type'].should.match(/text\/css/);
+        res.headers.should.not.have.property('content-encoding');
+      }
+    );
+  },
+  'test does not accept gzip': function() {
+    assert.response(gzipCss,
+      { url: '/style.css', headers: { 'Accept-Encoding': 'deflate' } },
+      function(res) {
+        res.statusCode.should.equal(200);
+        res.body.should.equal('body { font-size: 12px; color: red; }');
+        res.headers['content-type'].should.match(/text\/css/);
+        res.headers.should.not.have.property('content-encoding');
+      }
+    );
+  },
+  'test non-compressable': function() {
+    assert.response(gzipCss,
+      { url: '/', headers: { 'Accept-Encoding': 'gzip' } },
+      function(res) {
+        res.statusCode.should.equal(200);
+        res.body.should.equal('<p>Wahoo!</p>');
+        res.headers['content-type'].should.match(/text\/html/);
+        res.headers.should.not.have.property('content-encoding');
+      }
+    );
+  },
+  'test compressable multiple Accept-Encoding types': function() {
+    assert.response(gzipCss,
+      { url: '/style.css', headers: { 'Accept-Encoding': 'deflate,gzip,sdch' } },
+      function(res) {
+        res.statusCode.should.equal(200);
+        res.body.should.not.equal('body { font-size: 12px; color: red; }');
+        res.body.length.should.be.above(0);
+        res.headers['content-type'].should.match(/text\/css/);
+        res.headers.should.have.property('content-encoding', 'gzip');
+        res.headers['vary'].should.match(/Accept-Encoding/);
+      }
+    );
+  },
+  'test compressable index.html': function() {
+    assert.response(gzipHtml,
+      { url: '/', headers: { 'Accept-Encoding': 'gzip' } },
+      function(res) {
+        res.statusCode.should.equal(200);
+        res.body.should.not.equal('<p>Wahoo!</p>');
+        res.body.length.should.be.above(0);
+        res.headers['content-type'].should.match(/text\/html/);
+        res.headers.should.have.property('content-encoding', 'gzip');
+        res.headers['vary'].should.match(/Accept-Encoding/);
+      }
+    );
+  }
 }
