@@ -1,55 +1,107 @@
 var connect = require('connect'),
     gzip = require('../index'),
     assert = require('assert'),
-    http = require('http');
+    http = require('http'),
+    spawn = require('child_process').spawn,
+    app = testServer();
 
-// function server(headers) {
-//     headers = headers || {};
-//     headers['Content-Type'] = 'text/plain';
-//     return connect.createServer(
-//         gzip.gzip(),
-//         connect.createServer(
-//             function(req, res){
-//                 res.writeHead(200, headers);
-//                 res.end('can be compressed');
-//             })
-//     ).listen();
-// }
+function testServer() {
+  return connect.createServer(
+    gzip.gzip(),
+    function(req, res) {
+      var headers, body;
+      if (req.url === '/style.css') {
+        res.setHeader('Content-Type', 'text/css; charset=utf-8');
+        body = 'body { font-size: 12px; color: red; }';
+      } else if (req.url === '/') {
+        res.setHeader('Content-Type', 'text/html; charset=utf-8');
+        body = '<p>Wahoo!</p>';
+      }
+      res.setHeader('Content-Length', body.length);
+      res.end(body);
+    }
+  );
+}
 
 module.exports = {
-    // 'test no compression': function(){
-    //     var req = server().request('GET', '/', { });
-    //     req.buffer = true;
-    //     req.addListener('response', function(res){
-    //         res.addListener('end', function(){
-    //             assert.equal('can be compressed', res.body);
-    //         });
-    //     });
-    //     req.end();
-    // },
-    // 'test compression': function(){
-    //     var req = server().request('GET', '/', { 'Accept-Encoding': 'deflate, gzip' });
-    //     req.buffer = true;
-    //     req.addListener('response', function(res){
-    //         res.addListener('end', function(){
-    //             assert.equal('gzip', res.headers['content-encoding']);
-    //             // we could uncompress in this test. for now, check
-    //             // only that it's not the original body:
-    //             assert.notEqual('can be compressed', res.body);
-    //         });
-    //     });
-    //     req.end();
-    // },
-    // 'test no compression with other content-encoding': function(){
-    //     var req = server({ 'Content-Encoding': 'bogon' }).
-    //         request('GET', '/', { 'Accept-Encoding': 'bogon, gzip' });
-    //     req.buffer = true;
-    //     req.addListener('response', function(res){
-    //         res.addListener('end', function(){
-    //             assert.equal('bogon', res.headers['content-encoding']);
-    //             assert.equal('can be compressed', res.body);
-    //         });
-    //     });
-    //     req.end();
-    // }
+  'test no Accept-Encoding': function() {
+    assert.response(app, {
+        url: '/style.css'
+      }, {
+        status: 200,
+        body: 'body { font-size: 12px; color: red; }',
+        headers: { 'Content-Type': /text\/css/ }
+      }, function(res) {
+        res.headers.should.not.have.property('content-encoding');
+      }
+    );
+  },
+  'test does not accept gzip': function() {
+    assert.response(app, {
+        url: '/style.css',
+        headers: { 'Accept-Encoding': 'deflate' }
+      }, {
+        status: 200,
+        body: 'body { font-size: 12px; color: red; }',
+        headers: { 'Content-Type': /text\/css/ }
+      }, function(res) {
+        res.headers.should.not.have.property('content-encoding');
+      }
+    );
+  },
+  'test compressable multiple Accept-Encoding types': function() {
+    assert.response(app, {
+        url: '/style.css',
+        headers: { 'Accept-Encoding': 'deflate,gzip,sdch' }
+      }, {
+        status: 200,
+        headers: {
+          'Content-Type': /text\/css/,
+          'Content-Encoding': 'gzip',
+          'Vary': 'Accept-Encoding'
+        }
+      }
+    );
+  },
+  'test compressable index.html': function(beforeExit) {
+    var n = 0;
+    testServer().listen(9899, function() {
+      var options = {
+        path: '/',
+        port: 9899,
+        headers: {'Accept-Encoding': 'gzip'}
+      };
+      http.get(options, function(res) {
+        gunzip(res, function(err, body) {
+          body.should.equal('<p>Wahoo!</p>');
+          n++;
+        });
+      });
+    });
+    beforeExit(function() {
+      n.should.equal(1);
+    });
+  }
+}
+
+function gunzip(res, callback) {
+  var process = spawn('gunzip', ['-c']),
+      out = '',
+      err = '';
+  res.setEncoding('binary');
+  res.on('data', function(chunk) {
+    process.stdin.write(chunk, 'binary');
+  });
+  res.on('end', function() {
+    process.stdin.end();
+  });
+  process.stdout.on('data', function(data) {
+    out += data;
+  });
+  process.stderr.on('data', function(data) {
+    err += data;
+  });
+  process.on('exit', function(code) {
+    callback(err, out);
+  });
 }
