@@ -5,7 +5,6 @@
   "author": "Nate Smith",
   "main" : "./index.js",
   "dependencies": {
-    "connect": "*",
-    "compress": "*"
+    "connect": "*"
   }
 }
