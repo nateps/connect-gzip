@@ -28,6 +28,7 @@ Include this middleware to dynamically gzip data sent via `res.write` or `res.en
     ).listen(3000);
 
 Options:
+
 - `matchType` - A regular expression tested against the Content-Type header to determine whether the response should be gzipped or not. The default value is `/text|javascript|json/`.
 - `bin` - Command executed to perform gzipping. Defaults to `'gzip'`.
 - `flags` - Command flags passed to the gzip binary. Nothing by default for dynamic gzipping, so gzip will typically default to a compression level of 6.
@@ -53,6 +54,7 @@ If a file under the root path (such as an image) does not have an appropriate MI
     ).listen(3000);
 
 Options:
+
 - `matchType` - A regular expression tested against the file MIME type to determine whether the response should be gzipped or not. As in `connect.static`, MIME types are determined based on file extensions using [node-mime](https://github.com/bentomas/node-mime). The default value is `/text|javascript|json/`.
 - `bin` - Command executed to perform gzipping. Defaults to `'gzip'`.
 - `flags` - Command flags passed to the gzip binary. Defaults to `'--best'` for staticGzip.
