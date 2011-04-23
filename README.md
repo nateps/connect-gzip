@@ -1,6 +1,6 @@
 # connect-gzip
 
-Gzip middleware for [Connect](http://senchalabs.github.com/connect/) on [Node.js](http://nodejs.org). Uses Unix "gzip" command to perform compression of dynamic requests or static files. Originally based on implementation included with Connect before version 1.0.
+Gzip middleware for [Connect](http://senchalabs.github.com/connect/) on [Node.js](http://nodejs.org). Uses Unix [`gzip`](http://www.freebsd.org/cgi/man.cgi?query=gzip) command to perform compression of dynamic requests or static files. Originally based on implementation included with Connect before version 1.0.
 
 
 ## Installation
