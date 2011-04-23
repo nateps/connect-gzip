@@ -1,107 +1,129 @@
 var connect = require('connect'),
+    fs = require('fs'),
+    helpers = require('./helpers'),
+    testUncompressed = helpers.testUncompressed,
+    testCompressed = helpers.testCompressed,
     gzip = require('../index'),
-    assert = require('assert'),
-    http = require('http'),
-    spawn = require('child_process').spawn,
-    app = testServer();
+    
+    fixturesPath = __dirname + '/fixtures',
+    cssBody = fs.readFileSync(fixturesPath + '/style.css', 'utf8'),
+    htmlBody = fs.readFileSync(fixturesPath + '/index.html', 'utf8'),
+    cssPath = '/style.css',
+    htmlPath = '/',
+    matchCss = /text\/css/,
+    matchHtml = /text\/html/;
 
-function testServer() {
-  return connect.createServer(
-    gzip.gzip(),
-    function(req, res) {
-      var headers, body;
-      if (req.url === '/style.css') {
-        res.setHeader('Content-Type', 'text/css; charset=utf-8');
-        body = 'body { font-size: 12px; color: red; }';
-      } else if (req.url === '/') {
-        res.setHeader('Content-Type', 'text/html; charset=utf-8');
-        body = '<p>Wahoo!</p>';
-      }
-      res.setHeader('Content-Length', body.length);
-      res.end(body);
+function server() {
+  var args = Array.prototype.slice.call(arguments, 0),
+      callback = args.pop();
+  args.push(function(req, res) {
+    var headers = {},
+        body;
+    if (req.url === cssPath) {
+      headers['Content-Type'] = 'text/css; charset=utf-8';
+      body = cssBody;
+    } else if (req.url === htmlPath) {
+      headers['Content-Type'] = 'text/html; charset=utf-8';
+      body = htmlBody;
     }
-  );
+    headers['Content-Length'] = body.length;
+    callback(res, headers, body);
+  });
+  return connect.createServer.apply(null, args);
 }
 
-module.exports = {
-  'test no Accept-Encoding': function() {
-    assert.response(app, {
-        url: '/style.css'
-      }, {
-        status: 200,
-        body: 'body { font-size: 12px; color: red; }',
-        headers: { 'Content-Type': /text\/css/ }
-      }, function(res) {
-        res.headers.should.not.have.property('content-encoding');
-      }
-    );
-  },
-  'test does not accept gzip': function() {
-    assert.response(app, {
-        url: '/style.css',
-        headers: { 'Accept-Encoding': 'deflate' }
-      }, {
-        status: 200,
-        body: 'body { font-size: 12px; color: red; }',
-        headers: { 'Content-Type': /text\/css/ }
-      }, function(res) {
-        res.headers.should.not.have.property('content-encoding');
-      }
-    );
-  },
-  'test compressable multiple Accept-Encoding types': function() {
-    assert.response(app, {
-        url: '/style.css',
-        headers: { 'Accept-Encoding': 'deflate,gzip,sdch' }
-      }, {
-        status: 200,
-        headers: {
-          'Content-Type': /text\/css/,
-          'Content-Encoding': 'gzip',
-          'Vary': 'Accept-Encoding'
-        }
-      }
-    );
-  },
-  'test compressable index.html': function(beforeExit) {
-    var n = 0;
-    testServer().listen(9899, function() {
-      var options = {
-        path: '/',
-        port: 9899,
-        headers: {'Accept-Encoding': 'gzip'}
-      };
-      http.get(options, function(res) {
-        gunzip(res, function(err, body) {
-          body.should.equal('<p>Wahoo!</p>');
-          n++;
-        });
-      });
-    });
-    beforeExit(function() {
-      n.should.equal(1);
-    });
+function setHeaders(res, headers) {
+  for (var key in headers) {
+    res.setHeader(key, headers[key]);
   }
 }
+var setHeadersWriteHeadWrite = server(gzip.gzip(), function(res, headers, body) {
+  setHeaders(res, headers);
+  res.writeHead(200);
+  res.write(body);
+  res.end();
+});
+var setHeadersWriteHeadEnd = server(gzip.gzip(), function(res, headers, body) {
+  setHeaders(res, headers);
+  res.writeHead(200);
+  res.end(body);
+});
+var setHeadersWrite = server(gzip.gzip(), function(res, headers, body) {
+  setHeaders(res, headers);
+  res.write(body);
+  res.end();
+});
+var setHeadersEnd = server(gzip.gzip(), function(res, headers, body) {
+  setHeaders(res, headers);
+  res.end(body);
+});
+var writeHeadWrite = server(gzip.gzip(), function(res, headers, body) {
+  res.writeHead(200, headers);
+  res.write(body);
+  res.end();
+});
+var writeHeadEnd = server(gzip.gzip(), function(res, headers, body) {
+  res.writeHead(200, headers);
+  res.end(body);
+});
+var css = server(gzip.gzip({ matchType: /css/ }), function(res, headers, body) {
+  res.writeHead(200, headers);
+  res.end(body);
+});
 
-function gunzip(res, callback) {
-  var process = spawn('gunzip', ['-c']),
-      out = '',
-      err = '';
-  res.setEncoding('binary');
-  res.on('data', function(chunk) {
-    process.stdin.write(chunk, 'binary');
-  });
-  res.on('end', function() {
-    process.stdin.end();
-  });
-  process.stdout.on('data', function(data) {
-    out += data;
-  });
-  process.stderr.on('data', function(data) {
-    err += data;
-  });
-  process.on('exit', function(code) {
-    callback(err, out);
-  });
+module.exports = {
+  'gzip test uncompressable: no Accept-Encoding': testUncompressed(
+    css, cssPath, {}, cssBody, matchCss
+  ),
+  'gzip test uncompressable: does not accept gzip': testUncompressed(
+    css, cssPath, { 'Accept-Encoding': 'deflate' }, cssBody, matchCss
+  ),
+  'gzip test uncompressable: unmatched mime type': testUncompressed(
+    css, htmlPath, { 'Accept-Encoding': 'gzip' }, htmlBody, matchHtml
+  ),
+  'gzip test compressable': testCompressed(
+    css, cssPath, { 'Accept-Encoding': 'gzip' }, cssBody, matchCss
+  ),
+  'gzip test compressable: multiple Accept-Encoding types': testCompressed(
+    css, cssPath, { 'Accept-Encoding': 'deflate, gzip, sdch' }, cssBody, matchCss
+  ),
+  
+  'gzip test uncompressable: setHeaders, writeHead, write, end': testUncompressed(
+    setHeadersWriteHeadWrite, htmlPath, {}, htmlBody, matchHtml
+  ),
+  'gzip test compressable: setHeaders, writeHead, write, end': testCompressed(
+    setHeadersWriteHeadWrite, htmlPath, { 'Accept-Encoding': 'gzip' }, htmlBody, matchHtml
+  ),
+  'gzip test uncompressable: setHeaders, writeHead, end': testUncompressed(
+    setHeadersWriteHeadEnd, htmlPath, {}, htmlBody, matchHtml
+  ),
+  'gzip test compressable: setHeaders, writeHead, end': testCompressed(
+    setHeadersWriteHeadEnd, htmlPath, { 'Accept-Encoding': 'gzip' }, htmlBody, matchHtml
+  ),
+  
+  'gzip test uncompressable: setHeaders, write, end': testUncompressed(
+    setHeadersWrite, htmlPath, {}, htmlBody, matchHtml
+  ),
+  'gzip test compressable: setHeaders, write, end': testCompressed(
+    setHeadersWrite, htmlPath, { 'Accept-Encoding': 'gzip' }, htmlBody, matchHtml
+  ),
+  'gzip test uncompressable: setHeaders, end': testUncompressed(
+    setHeadersEnd, htmlPath, {}, htmlBody, matchHtml
+  ),
+  'gzip test compressable: setHeaders, end': testCompressed(
+    setHeadersEnd, htmlPath, { 'Accept-Encoding': 'gzip' }, htmlBody, matchHtml
+  ),
+  
+  'gzip test uncompressable: writeHead, write, end': testUncompressed(
+    writeHeadWrite, htmlPath, {}, htmlBody, matchHtml
+  ),
+  'gzip test compressable: writeHead, write, end': testCompressed(
+    writeHeadWrite, htmlPath, { 'Accept-Encoding': 'gzip' }, htmlBody, matchHtml
+  ),
+  'gzip test uncompressable: writeHead, end': testUncompressed(
+    writeHeadEnd, htmlPath, {}, htmlBody, matchHtml
+  ),
+  'gzip test compressable: writeHead, end': testCompressed(
+    writeHeadEnd, htmlPath, { 'Accept-Encoding': 'gzip' }, htmlBody, matchHtml
+  ),
 }

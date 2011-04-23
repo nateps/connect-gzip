@@ -1,113 +1,57 @@
-var assert = require('assert'),
-    should = require('should'),
-    http = require('http'),
-    spawn = require('child_process').spawn,
-    connect = require('connect'),
+var connect = require('connect'),
+    fs = require('fs'),
+    helpers = require('./helpers'),
+    testUncompressed = helpers.testUncompressed,
+    testCompressed = helpers.testCompressed,
     gzip = require('../index'),
     
     fixturesPath = __dirname + '/fixtures',
+    cssBody = fs.readFileSync(fixturesPath + '/style.css', 'utf8'),
+    htmlBody = fs.readFileSync(fixturesPath + '/index.html', 'utf8'),
+    appBody = '<b>Non-static html</b>',
+    cssPath = '/style.css',
+    htmlPath = '/',
+    matchCss = /text\/css/,
+    matchHtml = /text\/html/,
     
-    gzipCss = connect.createServer(
-      gzip.staticGzip(fixturesPath, { extensions: ['.css'] })
-    );
-
-module.exports = {
-  'test no Accept-Encoding': function() {
-    assert.response(gzipCss, {
-        url: '/style.css'
-      }, {
-        status: 200,
-        body: 'body { font-size: 12px; color: red; }',
-        headers: { 'Content-Type': /text\/css/ }
-      },
-      function(res) {
-        res.headers.should.not.have.property('content-encoding');
-      }
-    );
-  },
-  'test does not accept gzip': function() {
-    assert.response(gzipCss, {
-        url: '/style.css',
-        headers: { 'Accept-Encoding': 'deflate' }
-      }, {
-        status: 200,
-        body: 'body { font-size: 12px; color: red; }',
-        headers: { 'Content-Type': /text\/css/ }
-      },
-      function(res) {
-        res.headers.should.not.have.property('content-encoding');
-      }
-    );
-  },
-  'test non-compressable': function() {
-    assert.response(gzipCss, {
-        url: '/',
-        headers: { 'Accept-Encoding': 'gzip' }
-      }, {
-        status: 200,
-        body: '<p>Wahoo!</p>',
-        headers: { 'Content-Type': /text\/html/ }
-      },
-      function(res) {
-        res.headers.should.not.have.property('content-encoding');
-      }
-    );
-  },
-  'test compressable multiple Accept-Encoding types': function() {
-    assert.response(gzipCss, {
-        url: '/style.css',
-        headers: { 'Accept-Encoding': 'deflate,gzip,sdch' }
-      }, {
-        status: 200,
-        headers: {
-          'Content-Type': /text\/css/,
-          'Content-Encoding': 'gzip',
-          'Vary': 'Accept-Encoding'
+    staticDefault = connect.createServer(
+      gzip.staticGzip(fixturesPath)
+    ),
+    staticCss = connect.createServer(
+      gzip.staticGzip(fixturesPath, { matchType: /css/ }),
+      function(req, res) {
+        if (req.url === '/app') {
+          res.setHeader('Content-Type', 'text/html; charset=utf-8');
+          res.setHeader('Content-Length', appBody.length);
+          res.end(appBody);
         }
       }
     );
-  },
-  'test compressable index.html': function(beforeExit) {
-    var n = 0;
-    connect.createServer(
-      gzip.staticGzip(fixturesPath, { extensions: ['.html'] })
-    ).listen(9898, function() {
-      var options = {
-        path: '/',
-        port: 9898,
-        headers: {'Accept-Encoding': 'gzip'}
-      };
-      http.get(options, function(res) {
-        gunzip(res, function(err, body) {
-          body.should.equal('<p>Wahoo!</p>');
-          n++;
-        });
-      });
-    });
-    beforeExit(function() {
-      n.should.equal(1);
-    });
-  }
-}
 
-function gunzip(res, callback) {
-  var process = spawn('gunzip', ['-c']),
-      out = '',
-      err = '';
-  res.setEncoding('binary');
-  res.on('data', function(chunk) {
-    process.stdin.write(chunk, 'binary');
-  });
-  res.on('end', function() {
-    process.stdin.end();
-  });
-  process.stdout.on('data', function(data) {
-    out += data;
-  });
-  process.stderr.on('data', function(data) {
-    err += data;
-  });
-  process.on('exit', function(code) {
-    callback(err, out);
-  });
+module.exports = {
+  'staticGzip test uncompressable: no Accept-Encoding': testUncompressed(
+    staticCss, cssPath, {}, cssBody, matchCss
+  ),
+  'staticGzip test uncompressable: does not accept gzip': testUncompressed(
+    staticCss, cssPath, { 'Accept-Encoding': 'deflate' }, cssBody, matchCss
+  ),
+  'staticGzip test uncompressable: unmatched mime type': testUncompressed(
+    staticCss, htmlPath, { 'Accept-Encoding': 'gzip' }, htmlBody, matchHtml
+  ),
+  'staticGzip test uncompressable: non-static request': testUncompressed(
+    staticCss, '/app', { 'Accept-Encoding': 'gzip' }, appBody, matchHtml
+  ),
+  'staticGzip test compressable': testCompressed(
+    staticCss, cssPath, { 'Accept-Encoding': 'gzip' }, cssBody, matchCss
+  ),
+  'staticGzip test compressable: multiple Accept-Encoding types': testCompressed(
+    staticCss, cssPath, { 'Accept-Encoding': 'deflate, gzip, sdch' }, cssBody, matchCss
+  ),
+  
+  'staticGzip test uncompressable: default content types': testUncompressed(
+    staticDefault, htmlPath, {}, htmlBody, matchHtml
+  ),
+  'staticGzip test compressable: default content types': testCompressed(
+    staticDefault, htmlPath, { 'Accept-Encoding': 'gzip' }, htmlBody, matchHtml
+  ),
 }
