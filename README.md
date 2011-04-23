@@ -58,7 +58,7 @@ If a file under the root path (such as an image) does not have an appropriate MI
     // Only gzip javascript files:
     gzip.staticGzip(__dirname + '/public', { matchType: /javascript/ })
 
-    // Set a maxAge for browsers to cache files in milliseconds
+    // Set a maxAge in milliseconds for browsers to cache files
     var oneDay = 86400000;
     gzip.staticGzip(__dirname + '/public', { maxAge: oneDay })
 
