@@ -70,6 +70,10 @@ var css = server(gzip.gzip({ matchType: /css/ }), function(res, headers, body) {
   res.writeHead(200, headers);
   res.end(body);
 });
+var best = server(gzip.gzip({ flags: '--best' }), function(res, headers, body) {
+  res.writeHead(200, headers);
+  res.end(body);
+});
 
 module.exports = {
   'gzip test uncompressable: no Accept-Encoding': testUncompressed(
@@ -86,6 +90,10 @@ module.exports = {
   ),
   'gzip test compressable: multiple Accept-Encoding types': testCompressed(
     css, cssPath, { 'Accept-Encoding': 'deflate, gzip, sdch' }, cssBody, matchCss
+  ),
+  
+  'gzip test compressable: specify --best flag': testCompressed(
+    best, htmlPath, { 'Accept-Encoding': 'gzip' }, htmlBody, matchHtml
   ),
   
   'gzip test uncompressable: setHeaders, writeHead, write, end': testUncompressed(
