@@ -7,7 +7,7 @@ Gzip middleware for [Connect](http://senchalabs.github.com/connect/) on [Node.js
 
 Install via npm:
 
-$ npm install connect-gzip
+    $ npm install connect-gzip
 
 
 ## Usage
