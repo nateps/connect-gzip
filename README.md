@@ -26,6 +26,13 @@ Include this middleware to dynamically gzip data sent via `res.write` or `res.en
         res.end('<p>Some gzipped HTML!</p>');
       }
     ).listen(3000);
+    
+    
+    // Only gzip css files:
+    gzip.gzip({ matchType: /css/ })
+    
+    // Use maximum compression:
+    gzip.gzip({ flags: '--best' })
 
 Options:
 
@@ -33,12 +40,6 @@ Options:
 - `bin` - Command executed to perform gzipping. Defaults to `'gzip'`.
 - `flags` - Command flags passed to the gzip binary. Nothing by default for dynamic gzipping, so gzip will typically default to a compression level of 6.
 
-    // Only gzip css files:
-    gzip.gzip({ matchType: /css/ })
-    
-    // Use maximum compression:
-    gzip.gzip({ flags: '--best' })
-    
 
 ### gzip.staticGzip(root, [options])
 
@@ -52,19 +53,20 @@ If a file under the root path (such as an image) does not have an appropriate MI
     connect.createServer(
       gzip.staticGzip(__dirname + '/public')
     ).listen(3000);
-
-Options:
-
-- `matchType` - A regular expression tested against the file MIME type to determine whether the response should be gzipped or not. As in `connect.static`, MIME types are determined based on file extensions using [node-mime](https://github.com/bentomas/node-mime). The default value is `/text|javascript|json/`.
-- `bin` - Command executed to perform gzipping. Defaults to `'gzip'`.
-- `flags` - Command flags passed to the gzip binary. Defaults to `'--best'` for staticGzip.
-
+    
+    
     // Only gzip javascript files:
     gzip.staticGzip(__dirname + '/public', { matchType: /javascript/ })
 
     // Set a maxAge for browsers to cache files in milliseconds
     var oneDay = 86400000;
     gzip.staticGzip(__dirname + '/public', { maxAge: oneDay })
+
+Options:
+
+- `matchType` - A regular expression tested against the file MIME type to determine whether the response should be gzipped or not. As in `connect.static`, MIME types are determined based on file extensions using [node-mime](https://github.com/bentomas/node-mime). The default value is `/text|javascript|json/`.
+- `bin` - Command executed to perform gzipping. Defaults to `'gzip'`.
+- `flags` - Command flags passed to the gzip binary. Defaults to `'--best'` for staticGzip.
 
 
 ## License
