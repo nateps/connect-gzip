@@ -55,6 +55,21 @@ exports.testCompressed = function(app, url, headers, resBody, resType) {
   });
 }
 
+exports.testRedirect = function(app, url, headers, location) {
+  return wrapTest(function(done) {
+    assert.response(app, {
+        url: url,
+        headers: headers
+      }, {
+        status: 301,
+        headers: {
+          'Location': location
+        }
+      }, done
+    );
+  });
+}
+
 function gunzip(data, callback) {
   var process = spawn('gunzip', ['-c']),
       out = '',
