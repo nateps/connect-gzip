@@ -3,6 +3,7 @@ var connect = require('connect'),
     helpers = require('./helpers'),
     testUncompressed = helpers.testUncompressed,
     testCompressed = helpers.testCompressed,
+    testRedirect = helpers.testRedirect,
     gzip = require('../index'),
     
     fixturesPath = __dirname + '/fixtures',
@@ -53,5 +54,12 @@ module.exports = {
   ),
   'staticGzip test compressable: default content types': testCompressed(
     staticDefault, htmlPath, { 'Accept-Encoding': 'gzip' }, htmlBody, matchHtml
+  ),
+
+  'staticGzip test compressable: subdirectory': testCompressed(
+    staticDefault, '/sub/', { 'Accept-Encoding': 'gzip' }, htmlBody, matchHtml
+  ),
+  'staticGzip test compressable: subdirectory redirect': testRedirect(
+    staticDefault, '/sub', { 'Accept-Encoding': 'gzip' }, '/sub/'
   ),
 }
