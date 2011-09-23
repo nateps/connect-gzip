@@ -11,11 +11,7 @@
   "engines": {
     "node": "*"
   },
-  "directories": {
-    "lib": "./lib"
-  },
-  "files": [
-    ""
-  ],
-  "devDependencies": {}
+  "devDependencies": {
+    "expresso": ">=0.9"
+  }
 }
