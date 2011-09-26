@@ -69,6 +69,13 @@ Options:
 - `flags` - Command flags passed to the gzip binary. Defaults to `'--best'` for staticGzip.
 
 
+## Tests
+
+Run the tests with
+
+    expresso test
+
+
 ## License
 
 (The MIT License)
