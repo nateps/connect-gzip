@@ -1,7 +1,7 @@
 {
   "name": "connect-gzip",
   "description": "Gzip middleware for Connect. Based on implementation in Connect 0.5.9. Original source: https://github.com/senchalabs/connect/tree/c9a0c1e0e98451bb5fffb70c622b827a11bf4fc7",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "author": "Nate Smith",
   "main": "./index.js",
   "dependencies": {
