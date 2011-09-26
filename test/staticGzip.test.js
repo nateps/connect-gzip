@@ -56,6 +56,20 @@ module.exports = {
     staticDefault, htmlPath, { 'Accept-Encoding': 'gzip' }, htmlBody, matchHtml
   ),
 
+  // See: http://sebduggan.com/posts/ie6-gzip-bug-solved-using-isapi-rewrite
+  'staticGzip test uncompressable: IE6 before XP SP2': testUncompressed(
+    staticDefault, htmlPath, { 'Accept-Encoding': 'gzip', 'User-Agent': 'Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)' }, htmlBody, matchHtml
+  ),
+  'staticGzip test compressable: IE6 after XP SP2': testCompressed(
+    staticDefault, htmlPath, { 'Accept-Encoding': 'gzip', 'User-Agent': 'Mozilla/5.0 (compatible; MSIE 6.0; Windows NT 5.1; SV1' }, htmlBody, matchHtml
+  ),
+  'staticGzip test compressable: IE7': testCompressed(
+    staticDefault, htmlPath, { 'Accept-Encoding': 'gzip', 'User-Agent': 'Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 5.1)' }, htmlBody, matchHtml
+  ),
+  'staticGzip test compressable: Chrome': testCompressed(
+    staticDefault, htmlPath, { 'Accept-Encoding': 'gzip', 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_7_1) AppleWebKit/535.1 (KHTML, like Gecko) Chrome/14.0.835.186 Safari/535.1' }, htmlBody, matchHtml
+  ),
+
   'staticGzip test compressable: subdirectory': testCompressed(
     staticDefault, '/sub/', { 'Accept-Encoding': 'gzip' }, htmlBody, matchHtml
   ),
