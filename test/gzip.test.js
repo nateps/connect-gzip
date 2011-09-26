@@ -115,6 +115,9 @@ module.exports = {
   'gzip test compressable: setHeaders, write, end': testCompressed(
     setHeadersWrite, htmlPath, { 'Accept-Encoding': 'gzip' }, htmlBody, matchHtml
   ),
+  'gzip test compressable: setHeaders, write, end': testUncompressed(
+    setHeadersWrite, htmlPath, { 'User-Agent': 'Mozilla/4.0 (compatible; MSIE 6.0b; Windows NT 5.1)' }, htmlBody, matchHtml
+  ),
   'gzip test uncompressable: setHeaders, end': testUncompressed(
     setHeadersEnd, htmlPath, {}, htmlBody, matchHtml
   ),
