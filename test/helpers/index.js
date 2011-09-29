@@ -70,6 +70,21 @@ exports.testRedirect = function(app, url, headers, location) {
   });
 }
 
+exports.testMaxAge = function(app, url, headers, maxAge) {
+  return wrapTest(function(done) {
+    assert.response(app, {
+        url: url,
+        headers: headers
+      }, {
+        status: 200,
+        headers: {
+          'Cache-Control': 'public, max-age=' + Math.floor(maxAge / 1000)
+        }
+      }, done
+    );
+  });
+}
+
 function gunzip(data, callback) {
   var process = spawn('gunzip', ['-c']),
       out = '',

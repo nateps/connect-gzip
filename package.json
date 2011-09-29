@@ -12,6 +12,7 @@
     "node": "*"
   },
   "devDependencies": {
-    "expresso": ">=0.9"
+    "expresso": ">=0.9",
+    "should": ">=0.3.1"
   }
 }
