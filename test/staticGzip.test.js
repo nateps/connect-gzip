@@ -4,6 +4,7 @@ var connect = require('connect'),
     testUncompressed = helpers.testUncompressed,
     testCompressed = helpers.testCompressed,
     testRedirect = helpers.testRedirect,
+    testMaxAge = helpers.testMaxAge,
     gzip = require('../index'),
     
     fixturesPath = __dirname + '/fixtures',
@@ -11,6 +12,7 @@ var connect = require('connect'),
     htmlBody = fs.readFileSync(fixturesPath + '/index.html', 'utf8'),
     appBody = '<b>Non-static html</b>',
     cssPath = '/style.css',
+    gifPath = '/blank.gif',
     htmlPath = '/',
     matchCss = /text\/css/,
     matchHtml = /text\/html/,
@@ -27,6 +29,9 @@ var connect = require('connect'),
           res.end(appBody);
         }
       }
+    ),
+    staticMaxAge = connect.createServer(
+      gzip.staticGzip(fixturesPath, { maxAge: 1234000 })
     );
 
 module.exports = {
@@ -76,4 +81,16 @@ module.exports = {
   'staticGzip test compressable: subdirectory redirect': testRedirect(
     staticDefault, '/sub', { 'Accept-Encoding': 'gzip' }, '/sub/'
   ),
+  'staticGzip test compressable with Accept-Encoding: maxAge': testMaxAge(
+    staticMaxAge, cssPath, {'Accept-Encoding': 'gzip'}, 1234000
+  ),
+  'staticGzip test uncompressable with Accept-Encoding: maxAge': testMaxAge(
+    staticMaxAge, gifPath, {'Accept-Encoding': 'gzip'}, 1234000
+  ),
+  'staticGzip test compressable without Accept-Encoding: maxAge': testMaxAge(
+    staticMaxAge, cssPath, {}, 1234000
+  ),
+  'staticGzip test uncompressable without Accept-Encoding: maxAge': testMaxAge(
+    staticMaxAge, gifPath, {}, 1234000
+  )
 }
