@@ -5,8 +5,8 @@
   "author": "Nate Smith",
   "main": "./index.js",
   "dependencies": {
-    "connect": ">= 1.4.0",
-    "mime": ">= 0.0.1"
+    "connect": "=1.x",
+    "mime": ">=0.0.1"
   },
   "engines": {
     "node": "*"
