@@ -14,10 +14,11 @@ function wrapTest(func, numCallbacks) {
   }
 }
 
-exports.testUncompressed = function(app, url, headers, resBody, resType) {
+exports.testUncompressed = function(app, url, headers, resBody, resType, method) {
   return wrapTest(function(done) {
     assert.response(app, {
         url: url,
+        method: method ? method : 'GET',
         headers: headers
       }, {
         status: 200,
@@ -31,10 +32,11 @@ exports.testUncompressed = function(app, url, headers, resBody, resType) {
   });
 }
 
-exports.testCompressed = function(app, url, headers, resBody, resType) {
+exports.testCompressed = function(app, url, headers, resBody, resType, method) {
   return wrapTest(function(done) {
     assert.response(app, {
         url: url,
+        method: method ? method : 'GET',
         headers: headers,
         encoding: 'binary'
       }, {
