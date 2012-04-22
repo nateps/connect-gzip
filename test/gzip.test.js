@@ -91,6 +91,9 @@ module.exports = {
   'gzip test compressable: multiple Accept-Encoding types': testCompressed(
     css, cssPath, { 'Accept-Encoding': 'deflate, gzip, sdch' }, cssBody, matchCss
   ),
+  'gzip test uncompressable: HEAD request': testUncompressed(
+    css, cssPath, { 'Accept-Encoding': 'gzip' }, '', matchCss, 'HEAD'
+  ),
   
   'gzip test compressable: specify --best flag': testCompressed(
     best, htmlPath, { 'Accept-Encoding': 'gzip' }, htmlBody, matchHtml

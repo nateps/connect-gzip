@@ -14,10 +14,11 @@ function wrapTest(func, numCallbacks) {
   }
 }
 
-exports.testUncompressed = function(app, url, headers, resBody, resType) {
+exports.testUncompressed = function(app, url, headers, resBody, resType, method) {
   return wrapTest(function(done) {
     assert.response(app, {
         url: url,
+        method: method ? method : 'GET',
         headers: headers
       }, {
         status: 200,
@@ -31,10 +32,11 @@ exports.testUncompressed = function(app, url, headers, resBody, resType) {
   });
 }
 
-exports.testCompressed = function(app, url, headers, resBody, resType) {
+exports.testCompressed = function(app, url, headers, resBody, resType, method) {
   return wrapTest(function(done) {
     assert.response(app, {
         url: url,
+        method: method ? method : 'GET',
         headers: headers,
         encoding: 'binary'
       }, {
@@ -64,6 +66,21 @@ exports.testRedirect = function(app, url, headers, location) {
         status: 301,
         headers: {
           'Location': location
+        }
+      }, done
+    );
+  });
+}
+
+exports.testMaxAge = function(app, url, headers, maxAge) {
+  return wrapTest(function(done) {
+    assert.response(app, {
+        url: url,
+        headers: headers
+      }, {
+        status: 200,
+        headers: {
+          'Cache-Control': 'public, max-age=' + Math.floor(maxAge / 1000)
         }
       }, done
     );
