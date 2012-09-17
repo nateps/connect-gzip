@@ -90,14 +90,16 @@ exports.testMaxAge = function(app, url, headers, maxAge) {
 function gunzip(data, callback) {
   var process = spawn('gunzip', ['-c']),
       out = '',
-      err = '';
+      err = '',
+      version = process.versions.node.split('.');
+
   process.stdout.on('data', function(data) {
     out += data;
   });
   process.stderr.on('data', function(data) {
     err += data;
   });
-  process.on('exit', function(code) {
+  process.on(version[0] === 0 && version[1] < 7 ? "exit" : "close", function(code) {
     if (callback) callback(err, out);
   });
   process.stdin.end(data, 'binary');
